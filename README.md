@@ -79,6 +79,14 @@ npm run build
 
 ## Run with Docker
 
+Published Docker image: [hub.docker.com/r/andiledlamini/dictionary-app](https://hub.docker.com/r/andiledlamini/dictionary-app)
+
+Pull the published image:
+
+```bash
+docker pull andiledlamini/dictionary-app:latest
+```
+
 Build the production image from `dictionary-application`:
 
 ```bash
