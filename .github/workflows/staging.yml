@@ -1,0 +1,58 @@
+name: build-staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    environment: staging
+    env:
+      HAS_DOCKERHUB_CREDS: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+      IMAGE_REPO: ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/dictionary-app', secrets.DOCKERHUB_USERNAME) || 'dictionary-app' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Docker Hub credentials status
+        if: env.HAS_DOCKERHUB_CREDS != 'true'
+        run: echo "::warning::DOCKERHUB credentials are not set in the staging environment. Building and scanning local image without pushing."
+
+      - uses: docker/login-action@v3
+        if: env.HAS_DOCKERHUB_CREDS == 'true'
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push staging image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./dictionary-application
+          file: ./dictionary-application/Dockerfile
+          push: ${{ env.HAS_DOCKERHUB_CREDS == 'true' }}
+          load: ${{ env.HAS_DOCKERHUB_CREDS != 'true' }}
+          tags: |
+            ${{ env.IMAGE_REPO }}:staging
+            ${{ env.IMAGE_REPO }}:staging-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan staging image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_REPO }}:staging-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        with:
+          sarif_file: trivy-results.sarif
