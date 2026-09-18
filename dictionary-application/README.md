@@ -1,70 +1,85 @@
-# Getting Started with Create React App
+# Wordroom Dictionary
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Wordroom is a React dictionary application. Enter an English word to view its definitions, part of speech, examples, synonyms, pronunciation, and available audio.
 
-## Available Scripts
+## How It Works
 
-In the project directory, you can run:
+The search form is handled by `src/Dictionary.js`:
 
-### `npm start`
+1. The entered word is trimmed and URL-encoded.
+2. The app requests a definition from the Free Dictionary API.
+3. If that service is unavailable, the app requests a definition from Datamuse.
+4. The response is normalized and displayed by the `Results`, `Meaning`, `Phonetic`, and `Synonyms` components.
+5. Loading, empty-search, and not-found states are shown in the interface.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Both APIs are public and do not require an API key. The app uses Axios for HTTP requests and gives each request an eight-second timeout.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Requirements
 
-### `npm test`
+- Node.js 20 or newer
+- npm
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Run Locally
 
-### `npm run build`
+From the `dictionary-application` directory:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+npm start
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Test and Build
 
-### `npm run eject`
+Run the automated tests:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+CI=true npm test -- --watchAll=false
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Create an optimized production build:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+npm run build
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Run with Docker
 
-## Learn More
+Build the production image:
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+docker build -t dictionary-app:local .
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Start the container:
 
-### Code Splitting
+```bash
+docker run --rm --name dictionary-app-container -p 8080:80 dictionary-app:local
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Open [http://localhost:8080](http://localhost:8080) to use the containerized app. Stop a background container with:
 
-### Analyzing the Bundle Size
+```bash
+docker stop dictionary-app-container
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The Docker image uses a multi-stage build. Node.js compiles the React app, and Nginx serves the resulting static files. `nginx.conf` provides the fallback to `index.html` needed by a single-page React application.
 
-### Making a Progressive Web App
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```text
+public/index.html       HTML document shell and page metadata
+src/Dictionary.js       Search state, API requests, loading, and errors
+src/Results.js          Word-level result rendering
+src/Meaning.js          Definitions and examples
+src/Phonetic.js         Pronunciation and audio links
+src/Synonyms.js         Synonym lists
+src/*.css               Application styling
+Dockerfile              Production container definition
+nginx.conf              Nginx SPA configuration
+```
 
-### Advanced Configuration
+## Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The project uses Create React App 5. The build may display maintenance notices from older Create React App dependencies, but the application build and tests are functional.
